@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace OrderBook.Services
 {
-  public class OrderBookAuditService : IOrderBookAuditService
+  public class OrderBookAuditService : IOrderBookAuditService, IDisposable
   {
     private readonly OrderBookContext _context;
     private readonly ILogger<OrderBookAuditService> _logger;
@@ -15,12 +15,17 @@ namespace OrderBook.Services
 
     public OrderBookAuditService(OrderBookContext context, ILogger<OrderBookAuditService> logger)
     {
-      _context = context;
-      _logger = logger;
+      _context = context ?? throw new ArgumentNullException(nameof(context));
+      _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public async Task LogOrderBookSnapshot(string snapshot)
     {
+      if (_disposed)
+      {
+        throw new ObjectDisposedException(nameof(OrderBookAuditService));
+      }
+
       try
       {
         var orderBookData = JsonSerializer.Deserialize<OrderBookData>(snapshot);
@@ -43,7 +48,7 @@ namespace OrderBook.Services
       }
       catch (Exception ex)
       {
-        _logger.LogError(ex, "Error logging order book snapshot: {Message}", ex.Message);
+        _logger.LogError(ex, "Failed to log order book snapshot");
         throw;
       }
     }
@@ -64,6 +69,11 @@ namespace OrderBook.Services
         }
         _disposed = true;
       }
+    }
+
+    ~OrderBookAuditService()
+    {
+      Dispose(false);
     }
   }
 }

@@ -5,6 +5,6 @@ namespace OrderBook.Services
 {
   public interface IOrderBookAuditService : IDisposable
   {
-    Task LogOrderBookSnapshot(string rawData);
+    Task LogOrderBookSnapshot(string snapshot);
   }
 }
