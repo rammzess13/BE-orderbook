@@ -1,7 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
 using OrderBook.Data;
 using OrderBook.Services;
-using OrderBook.Hubs; // Add this if OrderBookHub is in the Hubs namespace
+using OrderBook.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,7 +17,11 @@ builder.Services.AddSignalR();
 builder.Services.AddHostedService<WebSocketService>();
 builder.Services.AddLogging();
 builder.Services.AddDbContext<OrderBookContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+    options.UseSqlite(connectionString);
+});
+
 builder.Services.AddSingleton<IOrderBookAuditServiceFactory, OrderBookAuditServiceFactory>();
 builder.Services.AddScoped<IOrderBookAuditService, OrderBookAuditService>();
 builder.Services.AddCors(options =>

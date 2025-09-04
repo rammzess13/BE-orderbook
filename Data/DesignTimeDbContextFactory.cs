@@ -17,7 +17,7 @@ namespace OrderBook.Data
       var builder = new DbContextOptionsBuilder<OrderBookContext>();
       var connectionString = configuration.GetConnectionString("DefaultConnection");
 
-      builder.UseSqlServer(connectionString);
+      builder.UseSqlite(connectionString);
 
       return new OrderBookContext(builder.Options);
     }

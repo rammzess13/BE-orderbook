@@ -5,53 +5,33 @@ A real-time order book tracking service that connects to Bitstamp's WebSocket AP
 ## Prerequisites
 
 - .NET 9.0 SDK
-- SQL Server LocalDB or SQL Server
-- Visual Studio Code (recommended) or any other IDE
+- Visual Studio Code (recommended)
 - Git
 
-## Installation Steps
+## Getting Started
 
-1. Install SQL Server LocalDB:
-   - Download [SQL Server Express](https://www.microsoft.com/en-us/sql-server/sql-server-downloads)
-   - Choose "Download Express" option
-   - During installation, select "LocalDB" feature
-   - Or run this command in PowerShell as administrator:
+1. Clone the repository:
 ```powershell
-winget install Microsoft.SQLServer.2022.LocalDB
-```
-
-2. Verify LocalDB installation:
-```cmd
-sqllocaldb info
-```
-This should show "MSSQLLocalDB" instance
-
-3. Clone the repository:
-```bash
 git clone <repository-url>
 cd OrderBook
 ```
 
-4. Create LocalDB instance if not exists:
-```cmd
-sqllocaldb create MSSQLLocalDB
-sqllocaldb start MSSQLLocalDB
+2. Install Entity Framework Core tools:
+```powershell
+dotnet tool install --global dotnet-ef
 ```
 
-5. Update database:
-```bash
-dotnet tool install --global dotnet-ef
+3. Set up the database:
+```powershell
+# Create initial migration
+dotnet ef migrations add InitialCreate
+
+# Create SQLite database and apply migrations
 dotnet ef database update
 ```
 
-6. Run the application:
-```bash
-dotnet run
-```
-
-7. Build and run the application:
-```bash
-dotnet build
+4. Run the application:
+```powershell
 dotnet run
 ```
 
@@ -61,79 +41,39 @@ dotnet run
 - WebSocket connection with automatic reconnection
 - SignalR integration for client updates
 - Audit logging of all order book snapshots
-- SQL Server database storage
+- SQLite database for easy setup and portability
 
 ## API Endpoints
 
 - WebSocket Hub: `https://localhost:5001/orderBookHub`
 - REST API: `https://localhost:5001/api/orderbook`
 
-## Client Connection Example
+## Database Management
 
-```javascript
-const connection = new signalR.HubConnectionBuilder()
-    .withUrl("/orderBookHub")
-    .withAutomaticReconnect()
-    .build();
+The application uses SQLite for data storage. The database file (`OrderBook.db`) will be created automatically in the project root directory when you run the migrations.
 
-connection.on("ReceiveOrderBook", (data) => {
-    console.log(JSON.parse(data));
-});
+To reset the database:
+```powershell
+# Remove existing database
+del OrderBook.db
 
-connection.start()
-    .catch(err => console.error(err));
+# Remove existing migrations
+rm -r Migrations
+
+# Create new migration
+dotnet ef migrations add InitialCreate
+
+# Create new database
+dotnet ef database update
 ```
-
-## Project Structure
-
-- `/Controllers` - API controllers
-- `/Services` - Business logic and WebSocket service
-- `/Models` - Data models
-- `/Data` - Database context and configurations
-- `/Hubs` - SignalR hub for real-time communications
-
-## Configuration
-
-The application can be configured through `appsettings.json`:
-
-- `ConnectionStrings:DefaultConnection` - Database connection string
-- `ExternalApi:WebSocketUrl` - Bitstamp WebSocket URL
-- `Logging:LogLevel` - Logging configuration
-
-## Development
-
-To run the project in development mode:
-
-```bash
-dotnet watch run
-```
-
-This will enable hot reload and automatic browser refresh.
 
 ## Troubleshooting
 
-If you encounter the "The file is locked by OrderBook" error:
-```bash
+If you encounter locked file errors:
+```powershell
+# Kill any running instances of the application
 taskkill /F /IM OrderBook.exe
-```
 
-If you get SQL connection errors:
-
-1. Verify LocalDB is running:
-```cmd
-sqllocaldb info MSSQLLocalDB
-```
-
-2. Check connection string in `appsettings.json`:
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=OrderBookDb;Trusted_Connection=True;MultipleActiveResultSets=true"
-  }
-}
-```
-
-3. Try starting LocalDB manually:
-```cmd
-sqllocaldb start MSSQLLocalDB
+# Clean the solution
+dotnet clean
 ```
