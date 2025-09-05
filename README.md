@@ -29,5 +29,5 @@ For detailed setup and running instructions, please see the README in the `/Orde
 
 ## UI Examples
 
-![UI Screenshot](https://monosnap.com/file/TswuCDtNBfjIVwucgPpZs4AsMw0xNq)
-![UI Screenshot with form filled](https://monosnap.com/file/U0oztAwAoXfcWXB0oM2ojHWMpF5jxn)
+![UI Screenshot](https://api.monosnap.com/file/download?id=TswuCDtNBfjIVwucgPpZs4AsMw0xNq)
+![UI Screenshot with form filled](https://api.monosnap.com/file/download?id=U0oztAwAoXfcWXB0oM2ojHWMpF5jxn)
