@@ -4,10 +4,12 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 using OrderBook.Hubs;
+using OrderBook.Models;  // Add this line to import OrderBookData
 
 namespace OrderBook.Services
 {
@@ -17,8 +19,10 @@ namespace OrderBook.Services
     private readonly IHubContext<OrderBookHub> _hubContext;
     private readonly ILogger<WebSocketService> _logger;
     private readonly IOrderBookAuditServiceFactory _auditServiceFactory;
+    private readonly IOrderBookAuditService _auditService;
     private ClientWebSocket _webSocket;
     private bool _running;
+    private bool _disposed;
     private readonly SemaphoreSlim _reconnectLock = new(1, 1);
 
     public WebSocketService(
@@ -27,15 +31,19 @@ namespace OrderBook.Services
         ILogger<WebSocketService> logger,
         IOrderBookAuditServiceFactory auditServiceFactory)
     {
-      _configuration = configuration;
-      _hubContext = hubContext;
-      _logger = logger;
-      _auditServiceFactory = auditServiceFactory;
+      _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+      _hubContext = hubContext ?? throw new ArgumentNullException(nameof(hubContext));
+      _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+      _auditServiceFactory = auditServiceFactory ?? throw new ArgumentNullException(nameof(auditServiceFactory));
+      _auditService = auditServiceFactory.Create("BTC-EUR");
       _webSocket = new ClientWebSocket();
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
+      if (_disposed)
+        throw new ObjectDisposedException(nameof(WebSocketService));
+
       _running = true;
       await ConnectAndListen(cancellationToken);
     }
@@ -46,6 +54,9 @@ namespace OrderBook.Services
       {
         await _reconnectLock.WaitAsync(cancellationToken);
 
+        if (_disposed)
+          throw new ObjectDisposedException(nameof(WebSocketService));
+
         if (_webSocket.State == WebSocketState.Open)
           return;
 
@@ -55,7 +66,9 @@ namespace OrderBook.Services
           _webSocket = new ClientWebSocket();
         }
 
-        var wsUrl = _configuration["ExternalApi:WebSocketUrl"];
+        var wsUrl = _configuration["ExternalApi:WebSocketUrl"]
+            ?? throw new InvalidOperationException("WebSocket URL not configured");
+
         await _webSocket.ConnectAsync(new Uri(wsUrl), cancellationToken);
 
         var subscribeMessage = JsonSerializer.Serialize(new
@@ -87,22 +100,29 @@ namespace OrderBook.Services
     {
       var buffer = new byte[8192];
       var messageBuffer = new StringBuilder();
+      var reconnectDelay = TimeSpan.FromSeconds(5);
 
-      while (_running && !cancellationToken.IsCancellationRequested)
+      while (_running && !cancellationToken.IsCancellationRequested && !_disposed)
       {
         try
         {
+          if (_webSocket.State != WebSocketState.Open)
+          {
+            _logger.LogWarning("WebSocket not open, attempting to reconnect...");
+            await Task.Delay(reconnectDelay, cancellationToken);
+            await ConnectAndListen(cancellationToken);
+            continue;
+          }
+
           var result = await _webSocket.ReceiveAsync(
               new ArraySegment<byte>(buffer),
               cancellationToken);
 
           if (result.MessageType == WebSocketMessageType.Close)
           {
-            await _webSocket.CloseAsync(
-                WebSocketCloseStatus.NormalClosure,
-                string.Empty,
-                cancellationToken);
-            break;
+            _logger.LogInformation("Received close message from server");
+            await HandleWebSocketClose(cancellationToken);
+            continue;
           }
 
           messageBuffer.Append(
@@ -110,21 +130,77 @@ namespace OrderBook.Services
 
           if (result.EndOfMessage)
           {
-            var message = messageBuffer.ToString();
-            await _hubContext.Clients.All.SendAsync("ReceiveOrderBook", message, cancellationToken);
-
-            var auditService = _auditServiceFactory.CreateScope();
-            await auditService.LogOrderBookSnapshot(message);
-
+            await ProcessMessage(messageBuffer.ToString(), cancellationToken);
             messageBuffer.Clear();
           }
         }
-        catch (Exception ex)
+        catch (WebSocketException ex)
         {
-          _logger.LogError(ex, "Error in ReceiveLoop");
-          await Task.Delay(5000, cancellationToken);
-          await ConnectAndListen(cancellationToken);
+          _logger.LogWarning(ex, "WebSocket connection error, attempting to reconnect...");
+          await HandleWebSocketClose(cancellationToken);
         }
+        catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
+        {
+          _logger.LogError(ex, "Unexpected error in ReceiveLoop");
+          await HandleWebSocketClose(cancellationToken);
+        }
+      }
+    }
+
+    private async Task HandleWebSocketClose(CancellationToken cancellationToken)
+    {
+      try
+      {
+        if (_webSocket.State == WebSocketState.Open)
+        {
+          await _webSocket.CloseAsync(
+              WebSocketCloseStatus.NormalClosure,
+              string.Empty,
+              cancellationToken);
+        }
+      }
+      catch (Exception ex)
+      {
+        _logger.LogWarning(ex, "Error while closing WebSocket connection");
+      }
+
+      _webSocket.Dispose();
+      _webSocket = new ClientWebSocket();
+
+      await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
+      await ConnectAndListen(cancellationToken);
+    }
+
+    private async Task ProcessMessage(string message, CancellationToken cancellationToken)
+    {
+      try
+      {
+        var jsonNode = JsonNode.Parse(message);
+
+        if (jsonNode?["event"]?.GetValue<string>() != "data" ||
+            jsonNode?["channel"]?.GetValue<string>() != "detail_order_book_btceur")
+        {
+          return;
+        }
+
+        var orderBookData = jsonNode["data"].ToJsonString();
+        var data = JsonSerializer.Deserialize<OrderBookData>(orderBookData);
+
+        if (data != null)
+        {
+          await Task.WhenAll(
+              _hubContext.Clients.All.SendAsync("ReceiveOrderBook", orderBookData, cancellationToken),
+              _auditService.LogOrderBookSnapshot(orderBookData)
+          );
+        }
+        else
+        {
+          _logger.LogError("Failed to deserialize order book data");
+        }
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error processing message: {Message}", message);
       }
     }
 
@@ -142,8 +218,21 @@ namespace OrderBook.Services
 
     public void Dispose()
     {
-      _webSocket?.Dispose();
-      _reconnectLock?.Dispose();
+      Dispose(true);
+      GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+      if (_disposed) return;
+
+      if (disposing)
+      {
+        _webSocket?.Dispose();
+        _reconnectLock?.Dispose();
+      }
+
+      _disposed = true;
     }
   }
 }

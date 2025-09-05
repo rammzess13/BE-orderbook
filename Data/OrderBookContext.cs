@@ -20,7 +20,11 @@ namespace OrderBook.Data
       {
         entity.HasKey(e => e.Id);
         entity.Property(e => e.LoggedAt)
-                  .HasDefaultValueSql("datetime('now')"); // SQLite timestamp function
+                  .IsRequired()
+                  .HasDefaultValueSql("CURRENT_TIMESTAMP");
+        entity.Property(e => e.RawData)
+                  .IsRequired()
+                  .HasColumnType("TEXT");
       });
     }
   }

@@ -30,6 +30,13 @@ namespace OrderBook.Services
       {
         var orderBookData = JsonSerializer.Deserialize<OrderBookData>(snapshot);
 
+        if (string.IsNullOrEmpty(orderBookData?.Timestamp) ||
+            string.IsNullOrEmpty(orderBookData?.Microtimestamp))
+        {
+          _logger.LogWarning("Invalid order book data received: {Snapshot}", snapshot);
+          return;
+        }
+
         var audit = new OrderBookAudit
         {
           Timestamp = orderBookData.Timestamp,
@@ -38,7 +45,7 @@ namespace OrderBook.Services
           LoggedAt = DateTime.UtcNow
         };
 
-        await _context.OrderBookAudits.AddAsync(audit);
+        _context.OrderBookAudits.Add(audit);
         await _context.SaveChangesAsync();
 
         _logger.LogInformation(
@@ -48,7 +55,7 @@ namespace OrderBook.Services
       }
       catch (Exception ex)
       {
-        _logger.LogError(ex, "Failed to log order book snapshot");
+        _logger.LogError(ex, "Failed to log order book snapshot: {Message}", ex.Message);
         throw;
       }
     }

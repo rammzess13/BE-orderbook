@@ -20,7 +20,7 @@ namespace OrderBook.Migrations
                     Timestamp = table.Column<string>(type: "TEXT", nullable: false),
                     Microtimestamp = table.Column<string>(type: "TEXT", nullable: false),
                     RawData = table.Column<string>(type: "TEXT", nullable: false),
-                    LoggedAt = table.Column<DateTime>(type: "TEXT", nullable: false, defaultValueSql: "datetime('now')")
+                    LoggedAt = table.Column<DateTime>(type: "TEXT", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP")
                 },
                 constraints: table =>
                 {

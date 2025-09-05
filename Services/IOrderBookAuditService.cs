@@ -1,10 +1,9 @@
-using System;
 using System.Threading.Tasks;
 
 namespace OrderBook.Services
 {
-  public interface IOrderBookAuditService : IDisposable
+  public interface IOrderBookAuditService
   {
-    Task LogOrderBookSnapshot(string snapshot);
+    Task LogOrderBookSnapshot(string orderBookData);
   }
 }

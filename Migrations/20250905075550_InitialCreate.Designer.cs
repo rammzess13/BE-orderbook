@@ -11,7 +11,7 @@ using OrderBook.Data;
 namespace OrderBook.Migrations
 {
     [DbContext(typeof(OrderBookContext))]
-    [Migration("20250904051506_InitialCreate")]
+    [Migration("20250905075550_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -29,7 +29,7 @@ namespace OrderBook.Migrations
                     b.Property<DateTime>("LoggedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT")
-                        .HasDefaultValueSql("datetime('now')");
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<string>("Microtimestamp")
                         .IsRequired()

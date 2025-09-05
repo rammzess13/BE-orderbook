@@ -26,7 +26,7 @@ namespace OrderBook.Migrations
                     b.Property<DateTime>("LoggedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT")
-                        .HasDefaultValueSql("datetime('now')");
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<string>("Microtimestamp")
                         .IsRequired()

@@ -4,7 +4,7 @@ namespace OrderBook.Services
 {
   public interface IOrderBookAuditServiceFactory
   {
-    IOrderBookAuditService CreateScope();
+    IOrderBookAuditService Create(string marketPair);
   }
 
   public class OrderBookAuditServiceFactory : IOrderBookAuditServiceFactory
@@ -16,7 +16,7 @@ namespace OrderBook.Services
       _scopeFactory = scopeFactory;
     }
 
-    public IOrderBookAuditService CreateScope()
+    public IOrderBookAuditService Create(string marketPair)
     {
       var scope = _scopeFactory.CreateScope();
       return scope.ServiceProvider.GetRequiredService<IOrderBookAuditService>();
