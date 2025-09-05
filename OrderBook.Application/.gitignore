@@ -1,0 +1,69 @@
+# .NET Core
+*.swp
+*.*~
+project.lock.json
+.DS_Store
+*.pyc
+nupkg/
+
+# Visual Studio Code
+.vscode/
+
+# User-specific files
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+build/
+bld/
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+msbuild.log
+msbuild.err
+msbuild.wrn
+
+# Visual Studio
+.vs/
+*.ncrunch*
+*.userprefs
+
+# Rider
+.idea/
+
+# Application specific
+OrderBook.Application/[Bb]in/
+OrderBook.Application/[Oo]bj/
+OrderBook.Application/*.user
+
+# Dependencies
+packages/
+*.nupkg
+*.snupkg
+
+# Logs
+*.log
+logs/
+
+# Environment files
+*.env
+.env.*
+appsettings.*.json
+!appsettings.json
+!appsettings.Example.json
+
+# Test Results
+TestResults/
+[Cc]overage/
+
+# DB
+*.db
+*.sqlite
