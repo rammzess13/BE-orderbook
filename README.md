@@ -29,5 +29,5 @@ For detailed setup and running instructions, please see the README in the `/Orde
 
 ## UI Examples
 
-![UI Screenshot](https://api.monosnap.com/file/download?id=TswuCDtNBfjIVwucgPpZs4AsMw0xNq)
-![UI Screenshot with form filled](https://api.monosnap.com/file/download?id=U0oztAwAoXfcWXB0oM2ojHWMpF5jxn)
+![UI Screenshot](https://github.com/rammzess13/FS-orderbook/tree/master/example1.png)
+![UI Screenshot with form filled](https://api.monosnap.com/rammzess13/FS-orderbook/tree/master/example2.png)
