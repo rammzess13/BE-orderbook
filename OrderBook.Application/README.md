@@ -77,6 +77,3 @@ taskkill /F /IM OrderBook.exe
 # Clean the solution
 dotnet clean
 ```
-
-![UI Screenshot](https://monosnap.com/file/TswuCDtNBfjIVwucgPpZs4AsMw0xNq)
-![UI Screenshot with form filled](https://monosnap.com/file/U0oztAwAoXfcWXB0oM2ojHWMpF5jxn)
